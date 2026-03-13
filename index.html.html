@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misión Tecnológica 2.0 - Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-neon: #00f3ff;
+            --verde-neon: #39ff14;
+            --rosa-neon: #ff00ff;
+            --morado-profundo: #0d0221;
+            /* Modificado: ahora es un gradiente púrpura */
+            --bg-oscuro: linear-gradient(135deg, #2b0057 0%, #050505 100%);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Rajdhani', sans-serif;
+            /* Modificado: se cambió background-color por background para admitir el gradiente */
+            background: var(--bg-oscuro);
+            color: white;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            height: 100vh; 
+            overflow: hidden;
+        }
+        #game-container {
+            width: 90%; max-width: 850px;
+            background: var(--morado-profundo);
+            border: 3px solid var(--azul-neon);
+            box-shadow: 0 0 20px var(--azul-neon);
+            border-radius: 20px; padding: 25px;
+            text-align: center; position: relative;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--azul-neon);
+            text-shadow: 0 0 10px var(--azul-neon);
+            font-size: 2.5rem;
+        }
+
+        /* ANIMACIÓN DEL ROBOT */
+        .avatar {
+            font-size: 60px;
+            transition: transform 0.3s ease;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        /* Clase que se activa al acertar */
+        .robot-celebrate {
+            animation: jump 0.5s ease infinite alternate;
+            filter: drop-shadow(0 0 15px var(--verde-neon));
+        }
+
+        @keyframes jump {
+            from { transform: translateY(0) scale(1); }
+            to { transform: translateY(-20px) scale(1.1); }
+        }
+
+        .btn-arcade {
+            background: transparent;
+            border: 2px solid var(--azul-neon);
+            color: var(--azul-neon);
+            padding: 12px;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            transition: 0.2s;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .btn-arcade:hover {
+            background: var(--azul-neon);
+            color: black;
+            box-shadow: 0 0 20px var(--azul-neon);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .progress-container {
+            width: 100%; background: #222;
+            height: 12px; border-radius: 10px;
+            margin: 15px 0; border: 1px solid var(--rosa-neon);
+        }
+
+        #progress-bar {
+            width: 0%; height: 100%;
+            background: var(--rosa-neon);
+            box-shadow: 0 0 10px var(--rosa-neon);
+            transition: width 0.4s;
+        }
+
+        .screen { display: none; }
+        .active { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div style="display: flex; justify-content: space-between; font-family: 'Orbitron'; color: var(--azul-neon); font-size: 0.8rem;">
+        <span>SCORE: <span id="score">0</span></span>
+        <span>PROGRESO: <span id="current-q-num">1</span>/20</span>
+    </div>
+    
+    <div class="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="start-screen" class="screen active">
+        <h1>MISIÓN TECNOLÓGICA</h1>
+        <div id="main-robot" class="avatar">🤖</div>
+        <p>¿Podrás superar las 20 pruebas de hardware y software?</p>
+        <button class="btn-arcade" onclick="startGame()" style="border-color: var(--verde-neon); color: var(--verde-neon);">INICIAR PROTOCOLO</button>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div id="game-robot" class="avatar">🤖</div>
+        <h2 id="question-text" style="min-height: 60px;">Pregunta</h2>
+        <div id="options" class="options-grid"></div>
+        <p id="feedback" style="height: 20px; font-weight: bold; margin-top: 20px;"></p>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1>SISTEMA RESTAURADO</h1>
+        <div class="avatar">👑</div>
+        <p>¡Eres un Maestro de la Tecnología!</p>
+        <h2 id="final-score" style="color: var(--verde-neon);"></h2>
+        <button class="btn-arcade" onclick="location.reload()">REINICIAR</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "¿Qué significa CPU?", opts: ["Unidad Central de Proceso", "Control de Puertos Únicos", "Cámara Para Usuarios"], corr: 0 },
+        { q: "¿Cuál es un periférico de ENTRADA?", opts: ["Impresora", "Monitor", "Teclado"], corr: 2 },
+        { q: "¿Qué dispositivo usamos para mover el puntero?", opts: ["Escáner", "Mouse", "Altavoz"], corr: 1 },
+        { q: "El componente físico de la PC se llama...", opts: ["Software", "Internet", "Hardware"], corr: 2 },
+        { q: "Windows y Linux son ejemplos de:", opts: ["Sistemas Operativos", "Navegadores", "Juegos"], corr: 0 },
+        { q: "¿Cuál es un periférico de SALIDA?", opts: ["Micrófono", "Auriculares", "Cámara"], corr: 1 },
+        { q: "Para guardar archivos permanentemente usamos el...", opts: ["Monitor", "Disco Duro", "Teclado"], corr: 1 },
+        { q: "Google Chrome es un...", opts: ["Sistema", "Navegador", "Virus"], corr: 1 },
+        { q: "¿Cuál NO es una parte de la computadora?", opts: ["Memoria RAM", "Placa Base", "Control Remoto"], corr: 2 },
+        { q: "La tecla más larga del teclado es:", opts: ["Enter", "Barra Espaciadora", "Escape"], corr: 1 },
+        { q: "¿Qué memoria es temporal y rápida?", opts: ["ROM", "RAM", "USB"], corr: 1 },
+        { q: "¿Para qué sirve el Escáner?", opts: ["Imprimir", "Digitalizar fotos/papel", "Escuchar música"], corr: 1 },
+        { q: "Un 'Bit' es la unidad de información...", opts: ["Más grande", "Más pequeña", "Mediana"], corr: 1 },
+        { q: "¿Qué tecla borra hacia la izquierda?", opts: ["Retroceso (Backspace)", "Suprimir", "Fin"], corr: 0 },
+        { q: "El software de escritura más famoso es:", opts: ["Excel", "Word", "Photoshop"], corr: 1 },
+        { q: "¿Cuál es una red social?", opts: ["Google", "Instagram", "Wikipedia"], corr: 1 },
+        { q: "¿Cómo se llama la pantalla principal de Windows?", opts: ["Piso", "Escritorio", "Mesa"], corr: 1 },
+        { q: "Para hacer una arroba (@) usamos:", opts: ["Alt Gr + Q/2", "Ctrl + P", "Shift + Enter"], corr: 0 },
+        { q: "¿Cuál es un dispositivo táctil?", opts: ["Impresora láser", "Tablet", "Mouse de bola"], corr: 1 },
+        { q: "¿Qué significa WWW?", opts: ["World Wide Web", "Wiki Word Web", "Wait Way Web"], corr: 0 }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+
+    function startGame() {
+        document.getElementById('start-screen').classList.remove('active');
+        document.getElementById('quiz-screen').classList.add('active');
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const qData = questions[currentQ];
+        document.getElementById('question-text').innerText = qData.q;
+        document.getElementById('current-q-num').innerText = currentQ + 1;
+        
+        const optsDiv = document.getElementById('options');
+        optsDiv.innerHTML = '';
+        
+        qData.opts.forEach((o, i) => {
+            const b = document.createElement('button');
+            b.className = 'btn-arcade';
+            b.innerText = o;
+            b.onclick = () => check(i);
+            optsDiv.appendChild(b);
+        });
+        updateProgress();
+    }
+
+    function check(idx) {
+        const feedback = document.getElementById('feedback');
+        const robot = document.getElementById('game-robot');
+        
+        if(idx === questions[currentQ].corr) {
+            score += 50;
+            document.getElementById('score').innerText = score;
+            feedback.innerText = "¡EXCELENTE! +50";
+            feedback.style.color = "var(--verde-neon)";
+            
+            // EL ROBOT FESTEJA
+            robot.innerText = "🚀"; 
+            robot.classList.add('robot-celebrate');
+            
+            setTimeout(() => {
+                robot.classList.remove('robot-celebrate');
+                robot.innerText = "🤖";
+                next();
+            }, 1200);
+        } else {
+            feedback.innerText = "SISTEMA INESTABLE... REINTENTA";
+            feedback.style.color = "var(--rosa-neon)";
+            robot.innerText = "😰";
+            setTimeout(() => { robot.innerText = "🤖"; feedback.innerText = ""; }, 1000);
+        }
+    }
+
+    function next() {
+        currentQ++;
+        if(currentQ < questions.length) showQuestion();
+        else endGame();
+    }
+
+    function updateProgress() {
+        let p = (currentQ / questions.length) * 100;
+        document.getElementById('progress-bar').style.width = p + "%";
+    }
+
+    function endGame() {
+        document.getElementById('quiz-screen').classList.remove('active');
+        document.getElementById('end-screen').classList.add('active');
+        document.getElementById('final-score').innerText = "PUNTOS FINALES: " + score;
+    }
+</script>
+</body>
+</html>
